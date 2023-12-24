@@ -1,0 +1,387 @@
+DROP SCHEMA IF EXISTS gai CASCADE;
+
+CREATE SCHEMA IF NOT EXISTS gai AUTHORIZATION mazurov_la;
+
+COMMENT ON SCHEMA gai IS 'ГАИ';
+ALTER ROLE mazurov_la IN DATABASE mazurov_la_db SET search_path TO gai, public;
+GRANT ALL ON SCHEMA gai TO mazurov_la;
+
+DROP TABLE IF EXISTS drivers CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS licenses CASCADE;
+DROP TABLE IF EXISTS machines CASCADE;
+DROP TABLE IF EXISTS marks CASCADE;
+DROP TABLE IF EXISTS models CASCADE;
+DROP TABLE IF EXISTS violations CASCADE;
+DROP TABLE IF EXISTS penalties CASCADE;
+
+CREATE TABLE IF NOT EXISTS drivers (
+	id serial NOT NULL,
+	FIO TEXT(30) NOT NULL,
+	adress TEXT(50) NOT NULL,
+	CONSTRAINT drivers_pk PRIMARY KEY (id)
+) WITH (
+  OIDS=FALSE
+);
+COMMENT ON TABLE drivers IS 'Водители';
+COMMENT ON COLUMN drivers.id IS 'Id';
+COMMENT ON COLUMN drivers.FIO IS 'ФИО';
+COMMENT ON COLUMN drivers.adress IS 'Адрес';
+
+
+
+CREATE TABLE IF NOT EXISTS categories (
+	id serial NOT NULL,
+	name TEXT(5) NOT NULL UNIQUE,
+	CONSTRAINT categories_pk PRIMARY KEY (id)
+) WITH (
+  OIDS=FALSE
+);
+COMMENT ON TABLE categories IS 'Категория';
+COMMENT ON COLUMN categories.id IS 'Id';
+COMMENT ON COLUMN categories.name IS 'Название';
+
+
+CREATE TABLE IF NOT EXISTS licenses (
+	id serial NOT NULL,
+	owner_id integer NOT NULL,
+	categories integer NOT NULL,
+	CONSTRAINT licenses_pk PRIMARY KEY (id)
+) WITH (
+  OIDS=FALSE
+);
+COMMENT ON TABLE licenses IS 'Категория';
+COMMENT ON COLUMN licenses.id IS 'Id';
+COMMENT ON COLUMN licenses.owner_id IS 'Id владельца';
+COMMENT ON COLUMN licenses.categories IS 'Id категории';
+
+
+
+CREATE TABLE IF NOT EXISTS machines (
+	vin integer NOT NULL UNIQUE,
+	plate TEXT NOT NULL,
+	model_id integer NOT NULL,
+	release_year integer(4) NOT NULL,
+	registration_date DATE NOT NULL,
+	deregestration_date DATE,
+	owner_id integer NOT NULL,
+	CONSTRAINT machines_pk PRIMARY KEY (vin)
+) WITH (
+  OIDS=FALSE
+);
+COMMENT ON TABLE machines IS 'Машина';
+COMMENT ON COLUMN machines.vin IS 'Id';
+COMMENT ON COLUMN machines.plate IS 'Гос. номер';
+COMMENT ON COLUMN machines.model_id IS 'Id модели';
+COMMENT ON COLUMN machines.release_year IS 'Год выпуска';
+COMMENT ON COLUMN machines.registration_date IS 'Дата регистрации';
+COMMENT ON COLUMN machines.owner_id IS 'Id владельца';
+
+
+
+
+CREATE TABLE IF NOT EXISTS models (
+	id serial NOT NULL,
+	name VARCHAR(255) NOT NULL,
+	mark_id integer NOT NULL,
+	CONSTRAINT models_pk PRIMARY KEY (id)
+) WITH (
+  OIDS=FALSE
+);
+COMMENT ON TABLE models IS 'Модель';
+COMMENT ON COLUMN models.id IS 'Id';
+COMMENT ON COLUMN models.name IS 'Название';
+COMMENT ON COLUMN models.mark_id IS 'Id марки';
+
+
+CREATE TABLE IF NOT EXISTS marks (
+	id serial NOT NULL,
+	name VARCHAR(255) NOT NULL,
+	CONSTRAINT marks_pk PRIMARY KEY (id)
+) WITH (
+  OIDS=FALSE
+);
+COMMENT ON TABLE marks IS 'Марка';
+COMMENT ON COLUMN marks.id IS 'Id';
+COMMENT ON COLUMN marks.name IS 'Название';
+
+
+CREATE TABLE IF NOT EXISTS violations (
+	id serial NOT NULL,
+	essense TEXT NOT NULL,
+	fine integer NOT NULL,
+	CONSTRAINT violations_pk PRIMARY KEY (id)
+) WITH (
+  OIDS=FALSE
+);
+COMMENT ON TABLE violations IS 'Нарушение';
+COMMENT ON COLUMN violations.id IS 'Id';
+COMMENT ON COLUMN violations.essense IS 'Вид';
+COMMENT ON COLUMN violations.fine IS 'Штраф';
+
+
+CREATE TABLE IF NOT EXISTS penalties (
+	id serial NOT NULL,
+	violation_id integer NOT NULL,
+	violation_date DATE NOT NULL,
+	license_id integer NOT NULL,
+	violation_place TEXT NOT NULL,
+	fine integer NOT NULL,
+	CONSTRAINT penalties_pk PRIMARY KEY (id)
+) WITH (
+  OIDS=FALSE
+);
+COMMENT ON TABLE penalties IS 'Взыскание';
+COMMENT ON COLUMN penalties.id IS 'Id';
+COMMENT ON COLUMN penalties.violation_id IS 'Вид';
+COMMENT ON COLUMN penalties.violation_date IS 'Дата нарушения';
+COMMENT ON COLUMN penalties.license_id IS 'Номер удостоверения';
+COMMENT ON COLUMN penalties.violation_place IS 'Место нарушения';
+COMMENT ON COLUMN penalties.fine IS 'Штраф';
+
+
+ALTER TABLE licenses 
+	ADD CONSTRAINT licenses_fk_owner_id FOREIGN KEY (owner_id) 
+	REFERENCES drivers(id)
+	ON UPDATE CASCADE ON DELETE CASCADE;
+
+ALTER TABLE machines 
+	ADD CONSTRAINT machines_fk_model_id FOREIGN KEY (model_id) 
+	REFERENCES models(id)
+	ON UPDATE NO ACTION ON DELETE NO ACTION;
+ALTER TABLE machines 
+	ADD CONSTRAINT machines_fk_owner_id FOREIGN KEY (owner_id) 
+	REFERENCES drivers(id)
+	ON UPDATE CASCADE ON DELETE CASCADE;
+
+ALTER TABLE models 
+	ADD CONSTRAINT models_fk_mark_id FOREIGN KEY (mark_id) 
+	REFERENCES marks(id)
+	ON UPDATE CASCADE ON DELETE NO ACTION;
+
+ALTER TABLE penalties 
+	ADD CONSTRAINT penalties_fk_violation_id FOREIGN KEY (violation_id) 
+	REFERENCES violations(id)
+	ON UPDATE CASCADE ON DELETE CASCADEж
+ALTER TABLE penalties 
+	ADD CONSTRAINT penalties_fk_license_id FOREIGN KEY (license_id) 
+	REFERENCES licenses(id)
+	ON UPDATE NO ACTION ON DELETE NO ACTION;
+
+ALTER TABLE licenses 
+	ADD CONSTRAINT licenses_fk_categories FOREIGN KEY (categories) 
+	REFERENCES categories(id)
+	ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+
+INSERT INTO marks VALUES (1, 'Audi');
+INSERT INTO marks VALUES (2, 'BMW');
+INSERT INTO marks VALUES (3, 'Mercedes');
+INSERT INTO marks VALUES (4, 'Volkswagen');
+INSERT INTO marks VALUES (5, 'Toyota');
+INSERT INTO marks VALUES (6, 'Nissan');
+
+INSERT INTO models VALUES (1, 'Audi A8 Long', 1);
+INSERT INTO models VALUES (2, 'BMW X6', 2);
+INSERT INTO models VALUES (3, 'Mercedes GLA', 3);
+INSERT INTO models VALUES (4, 'Volkswagen Golf', 4);
+INSERT INTO models VALUES (5, 'Toyota Cumry', 5);
+INSERT INTO models VALUES (6, 'Nissan Juke', 6);
+
+INSERT INTO categories VALUES (1, 'A');
+INSERT INTO categories VALUES (2, 'B');
+INSERT INTO categories VALUES (3, 'C');
+INSERT INTO categories VALUES (4, 'D');
+INSERT INTO categories VALUES (5, 'M');
+
+INSERT INTO drivers VALUES (1, 'Иван Иванов', 'Воронеж');
+INSERT INTO drivers VALUES (2, 'Петр Петров', 'Москва');
+INSERT INTO drivers VALUES (3, 'Сидор Сидоров', 'Санкт-Петербург');
+INSERT INTO drivers VALUES (4, 'Алексей Алексеев', 'Новосибирск');
+INSERT INTO drivers VALUES (5, 'Василий Васильев', 'Казань');
+INSERT INTO drivers VALUES (6, 'Михаил Михайлов', 'Сочи');
+
+INSERT INTO licenses VALUES (1, 1, 2);
+INSERT INTO licenses VALUES (2, 2, 2);
+INSERT INTO licenses VALUES (3, 2, 3);
+INSERT INTO licenses VALUES (4, 3, 1);
+INSERT INTO licenses VALUES (5, 3, 2);
+INSERT INTO licenses VALUES (6, 4, 5);
+INSERT INTO licenses VALUES (7, 4, 2);
+INSERT INTO licenses VALUES (8, 4, 1);
+
+INSERT INTO machines VALUES (1, 'B777OP', 1, "2022", '2022-04-15', '2023-04-15', 1);
+INSERT INTO machines VALUES (2, 'X666AM', 2, "2020", '2020-03-11', '2021-03-11', 2);
+INSERT INTO machines VALUES (3, 'H111OC', 3, "2022", '2022-11-01', '2023-11-01', 3);
+INSERT INTO machines VALUES (4, 'C555OH', 4, "2018", '2018-06-16', '2029-06-16', 4);
+INSERT INTO machines VALUES (5, 'K222OT', 5, "2021", '2021-02-10', '2022-02-10', 5);
+INSERT INTO machines VALUES (6, 'C696OC', 6, "2015", '2015-09-25', '2016-09-25', 6);
+
+INSERT INTO violations VALUES (1, 'Непристегнутый ремень', 5000);
+INSERT INTO violations VALUES (2, 'Превышение скорости', 2000);
+INSERT INTO violations VALUES (3, 'Остановка за стоп-линией', 2000);
+INSERT INTO violations VALUES (4, 'Проезд на красный свет', 3000);
+INSERT INTO violations VALUES (5, 'Управление транспортным средством без водительского удостоверения', 10000);
+
+INSERT INTO penalties VALUES (1, 1, '2022-04-15', 1, 'Левый берег', 5000);
+INSERT INTO penalties VALUES (2, 2, '2020-03-11', 2, 'Где-то за МКАДом(в жопе)', 2000);
+INSERT INTO penalties VALUES (3, 3, '2022-11-01', 3, 'Улица Пушкина Дом Колотушкина', 2000);
+INSERT INTO penalties VALUES (4, 4, '2021-02-15', 2, 'На улице', 3000);
+INSERT INTO penalties VALUES (5, 5, '2022-01-08', 3, 'Дома', 10000);
+
+
+
+CREATE OR REPLACE VIEW DriverTotalFinesView AS
+SELECT
+    d.id AS driver_id,
+    d.FIO AS driver_name,
+    d.adress AS driver_address,
+    SUM(p.fine) AS total_fines
+FROM
+    drivers d
+JOIN
+    licenses l ON d.id = l.owner_id
+JOIN
+    penalties p ON l.id = p.license_id
+GROUP BY
+    d.id, d.FIO, d.adress;
+
+CREATE OR REPLACE VIEW ViolationDetailsView AS
+SELECT
+    v.id AS violation_id,
+    v.essense AS violation_essence,
+    v.fine AS violation_fine,
+    p.violation_date,
+    p.violation_place,
+    p.license_id
+FROM
+    violations v
+JOIN
+    penalties p ON v.id = p.violation_id;
+
+CREATE OR REPLACE VIEW CategoryTotalFinesView AS
+SELECT
+    c.id AS category_id,
+    c.name AS category_name,
+    SUM(p.fine) AS total_fines
+FROM
+    categories c
+JOIN
+    licenses l ON c.id = l.categories
+JOIN
+    penalties p ON l.id = p.license_id
+GROUP BY
+    c.id, c.name;
+
+
+CREATE SEQUENCE penalties_id_sequence
+    START WITH 10
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+CREATE OR REPLACE FUNCTION getRandomLicense() RETURNS TABLE (
+    lic_id INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        id AS lic_id
+    FROM licenses
+    ORDER BY RANDOM()
+    LIMIT 1;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION getRandomViolation() RETURNS TABLE (
+    vio_id INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        id AS vio_id
+    FROM violations
+    ORDER BY RANDOM()
+    LIMIT 1;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE generatePenalties(num_records INTEGER) AS $$
+DECLARE
+    v_penalty_id INTEGER;
+    v_violation_id INTEGER;
+    v_violation_date DATE;
+    v_license_id INTEGER;
+    v_violation_place TEXT;
+    v_fine INTEGER;
+BEGIN
+    FOR v_penalty_id IN 1..num_records LOOP
+        SELECT lic_id INTO v_license_id FROM getRandomLicense();
+        SELECT vio_id INTO v_violation_id FROM getRandomViolation();
+
+        v_fine := (floor(random() * 15) + 1) * 1000;
+        v_violation_date := CURRENT_DATE + v_penalty_id;
+        v_violation_place := 'Улица '::text || (floor(random() * 100) + 1)::text || ' Дом '::text || (floor(random() * 100) + 1)::text;
+
+        INSERT INTO penalties (id, violation_id, violation_date, license_id, violation_place, fine)
+        VALUES (nextval('penalties_id_sequence'), v_violation_id, v_violation_date, v_license_id, v_violation_place, v_fine);
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TABLE IF NOT EXISTS Penalties_Audit (
+    audit_id SERIAL PRIMARY KEY,
+    id INTEGER,
+    action VARCHAR(10) NOT NULL,
+    audit_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    old_data JSONB,
+    new_data JSONB
+);
+
+CREATE OR REPLACE FUNCTION penalties_audit()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO Penalties_Audit (id, action, new_data)
+        VALUES (NEW.id, 'INSERT', ROW_TO_JSON(NEW)::JSONB);
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO Penalties_Audit (id, action, old_data, new_data)
+        VALUES (NEW.id, 'UPDATE', ROW_TO_JSON(OLD)::JSONB, ROW_TO_JSON(NEW)::JSONB);
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO Penalties_Audit (id, action, old_data)
+        VALUES (OLD.id, 'DELETE', ROW_TO_JSON(OLD)::JSONB);
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER penalties_audit_trigger
+AFTER INSERT OR UPDATE OR DELETE
+ON penalties
+FOR EACH ROW
+EXECUTE FUNCTION penalties_audit();
+
+CREATE ROLE patrol;
+GRANT CONNECT ON DATABASE mazurov_la_db TO patrol;
+GRANT USAGE ON SCHEMA gai TO patrol;
+GRANT SELECT, INSERT, UPDATE ON TABLE violations TO patrol;
+GRANT SELECT, INSERT, UPDATE ON TABLE penalties TO patrol;
+
+CREATE ROLE dps;
+GRANT CONNECT ON DATABASE mazurov_la_db TO dps;
+GRANT USAGE ON SCHEMA gai TO dps;
+GRANT SELECT, DELETE ON TABLE licenses TO dps;
+GRANT SELECT ON TABLE drivers TO dps;
+GRANT SELECT ON TABLE categories TO dps;
+
+CREATE USER patrol_user WITH PASSWORD 'password_patrol';
+GRANT patrol TO patrol_user;
+GRANT CONNECT ON DATABASE mazurov_la_db TO patrol_user;
+ALTER ROLE patrol_user IN DATABASE mazurov_la_db SET search_path TO gai, public;
+
+CREATE USER dps_user WITH PASSWORD 'password_dps';
+GRANT dps TO dps_user;
+GRANT CONNECT ON DATABASE mazurov_la_db TO dps_user;
+ALTER ROLE dps_user IN DATABASE mazurov_la_db SET search_path TO gai, public;
